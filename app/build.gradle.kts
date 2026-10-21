@@ -8,6 +8,13 @@ plugins {
     alias(libs.plugins.ksp)
 }
 
+// 签名配置：从 local.properties 读取（该文件不入库），不存在时跳过，保证他人 clone 后仍可构建
+val keystoreProps = Properties().apply {
+    val propsFile = rootProject.file("local.properties")
+    if (propsFile.exists()) propsFile.inputStream().use { load(it) }
+}
+val hasReleaseSigning = keystoreProps.getProperty("signing.storeFile") != null
+
 android {
     namespace = "com.ink.sms"
     compileSdk {
@@ -25,6 +32,16 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        if (hasReleaseSigning) {
+            create("release") {
+                storeFile = file(keystoreProps.getProperty("signing.storeFile"))
+                storePassword = keystoreProps.getProperty("signing.storePassword")
+                keyAlias = keystoreProps.getProperty("signing.keyAlias")
+                keyPassword = keystoreProps.getProperty("signing.keyPassword")
+            }
+        }
+    }
     buildTypes {
         debug {
             isMinifyEnabled = false
@@ -32,6 +49,9 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            if (hasReleaseSigning) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
         release {
             isMinifyEnabled = false
@@ -39,6 +59,9 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            if (hasReleaseSigning) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
     compileOptions {
