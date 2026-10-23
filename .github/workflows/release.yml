@@ -1,7 +1,7 @@
 name: Release APK
 
 # 打 tag 后自动构建已签名 APK 并发布到 GitHub Release
-# tag 格式：YYYYMMDD-versionName-versionCode，例如 20261023-1.0.1-2
+# tag 格式：YYYYMMDD-versionName-versionCode，例如 20261023-1.0.2-3
 on:
   push:
     tags:
@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: '已存在的 tag，如 20261023-1.0.1-2'
+        description: '已存在的 tag，如 20261023-1.0.2-3'
         required: true
         default: ''
       dry_run:
@@ -89,6 +89,7 @@ jobs:
         run: |
           echo "ANDROID_HOME=$ANDROID_HOME"
           ls "$ANDROID_HOME/platforms" 2>/dev/null || echo "无法列出 platforms"
+          gradle --version
           # runner 用 bash -e 执行，pipefail 会让失败直接退出、跳过下面的诊断，所以这里先关掉
           set +e
           set -o pipefail
@@ -96,9 +97,15 @@ jobs:
           STATUS=${PIPESTATUS[0]}
           set -e
           if [ "$STATUS" -ne 0 ]; then
-            # 把日志尾部重新打成注解，方便直接在网页/接口里看到失败原因
-            echo "::error::Gradle 构建失败（exit=$STATUS，日志 $(wc -l < gradle-build.log) 行），尾部如下"
-            tail -n 8 gradle-build.log | while IFS= read -r line; do echo "::error::$line"; done
+            # 只打 tail 会被 org.gradle.* 的堆栈帧占满，真正的根因在 "What went wrong" 段里，
+            # 所以优先抽出那一段打成注解（每步最多约 10 条 error 注解，够用）
+            echo "::error::Gradle 构建失败（exit=$STATUS，日志 $(wc -l < gradle-build.log) 行）"
+            grep -n -m1 -A 12 'What went wrong' gradle-build.log > fail-reason.log || true
+            if [ -s fail-reason.log ]; then
+              tail -n +2 fail-reason.log | head -n 10 | while IFS= read -r line; do echo "::error::$line"; done
+            else
+              tail -n 10 gradle-build.log | while IFS= read -r line; do echo "::error::$line"; done
+            fi
             ls -l app/build/outputs/apk/release/ 2>/dev/null || echo "release 输出目录不存在"
             exit 1
           fi
