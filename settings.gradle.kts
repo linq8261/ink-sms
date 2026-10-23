@@ -11,6 +11,8 @@ pluginManagement {
         maven { url = uri("https://maven.aliyun.com/repository/central") }
         maven { url = uri("https://maven.aliyun.com/repository/public") }
         maven { url = uri("https://repo.huaweicloud.com/repository/maven/") }
+        // 官方仓库兜底：国内镜像对海外 CI（GitHub Actions）可能超时/拒绝，CI 上靠这两个解析
+        mavenCentral()
         gradlePluginPortal()
     }
 }
@@ -25,6 +27,7 @@ dependencyResolutionManagement {
         maven { url = uri("https://maven.aliyun.com/repository/central") }
         maven { url = uri("https://maven.aliyun.com/repository/public") }
         maven { url = uri("https://repo.huaweicloud.com/repository/maven/") }
+        mavenCentral()
     }
 }
 rootProject.name = "ink-sms"

@@ -1,7 +1,7 @@
 name: Release APK
 
 # 打 tag 后自动构建已签名 APK 并发布到 GitHub Release
-# tag 格式：YYYYMMDD-versionName-versionCode，例如 20261023-1.0.2-3
+# tag 格式：YYYYMMDD-versionName-versionCode，例如 20261023-1.0.3-4
 on:
   push:
     tags:
@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: '已存在的 tag，如 20261023-1.0.2-3'
+        description: '已存在的 tag，如 20261023-1.0.3-4'
         required: true
         default: ''
       dry_run:
@@ -85,6 +85,20 @@ jobs:
             > local.properties
           sed 's/Password=.*/Password=***/' local.properties
 
+      # 仓库 settings.gradle.kts 里优先用国内镜像（本地快），但海外 runner 访问这些镜像
+      # 可能超时/被拒，导致 KSP 这类插件解析失败。CI 用 init 脚本把仓库换成官方源。
+      - name: CI 强制使用官方 Maven 仓库
+        run: |
+          mkdir -p "$GRADLE_USER_HOME/init.d"
+          # 这里不用 heredoc：YAML 里的缩进会让 EOF 终止符带前导空格，heredoc 就关不掉
+          {
+            echo 'settingsEvaluated { s ->'
+            echo '    s.pluginManagement.repositories { clear(); google(); mavenCentral(); gradlePluginPortal() }'
+            echo '    s.dependencyResolutionManagement.repositories { clear(); google(); mavenCentral() }'
+            echo '}'
+          } > "$GRADLE_USER_HOME/init.d/ci-repos.gradle"
+          cat "$GRADLE_USER_HOME/init.d/ci-repos.gradle"
+
       - name: 构建 release APK
         run: |
           echo "ANDROID_HOME=$ANDROID_HOME"
@@ -106,6 +120,19 @@ jobs:
             else
               tail -n 10 gradle-build.log | while IFS= read -r line; do echo "::error::$line"; done
             fi
+            # 注解每步有数量上限，完整尾部写进 Job Summary，未登录也能直接看
+            {
+              echo '## Gradle 构建失败'
+              echo ''
+              echo '### 关键行'
+              echo '```'
+              grep -n -i -E 'What went wrong|Caused by|Could not (GET|HEAD|resolve)|status code|timed out|refused' gradle-build.log | head -n 40 || echo '(无匹配)'
+              echo '```'
+              echo '### 日志尾部 80 行'
+              echo '```'
+              tail -n 80 gradle-build.log
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
             ls -l app/build/outputs/apk/release/ 2>/dev/null || echo "release 输出目录不存在"
             exit 1
           fi
