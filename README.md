@@ -1,14 +1,20 @@
 # 弄墨短信 · ink-sms
 
+## 📥 下载安装（APK）
+
+**👉 [点击这里进入 Release 页面下载 APK](https://gitee.com/qiantu/ink-sms/releases)**
+
+## 关于项目不在更新的说明
+
 - 本来也就是想替换我的OPPO自带的短信APP，结果发现有很多问题。
 - 设置第三方APP为默认短信APP后，系统一直提示有风险，而且不能忽略，很碍眼。
 - OPPO对于后台应用限制的很死，退到后台几分钟，基本就不会接收到短信的广播了，不能及时收到短信的风险很大（设置了耗电白名单、锁住应用、自启动、关联启动等等，依然不行）。
 - 顺便说一下我另一个应用，一个通知播报应用，OPPO系统也是退到后台基本就监听不到通知了。
 - 基于上面的原因，放弃。** 
 
----
+## 前言
 
-一个用 **Kotlin + Jetpack Compose** 编写的 Android 短信（SMS）应用，作为系统默认短信应用的个人替代客户端。对已接收 / 已发送的文本短信做会话级聚合展示，并对**验证码、服务号链接、联系人**等做了专门的解析与交互优化。
+一个 Android 短信（SMS）应用，作为系统默认短信应用的个人替代客户端。对已接收 / 已发送的文本短信做会话级聚合展示，并对**验证码、服务号链接、联系人**等做了专门的解析与交互优化。
 
 > 个人自用、不上架的纯文本短信 App，不处理 MMS。
 
@@ -47,41 +53,9 @@
 
 ---
 
-## 技术栈
-
-| 分类 | 选型 |
-| --- | --- |
-| 语言 | Kotlin 2.2.10 |
-| UI | Jetpack Compose（Material 3，BOM 2026.02.01） |
-| 架构 | MVVM + Repository，单向数据流（`StateFlow` + `collectAsStateWithLifecycle`） |
-| 依赖注入 | Hilt 2.60.1 |
-| 本地存储 | Room 2.7.1（回收站副本） |
-| 导航 | Navigation Compose 2.9.8 |
-| 构建 | Android Gradle Plugin 9.1.1，KSP 2.2.10 |
-| 最低 / 目标 / 编译 SDK | minSdk 24 / targetSdk 36 / compileSdk 36 |
-
-## 项目结构
-
-```
-app/src/main/java/com/ink/sms/
-├── MainActivity.kt            # 入口 Activity，未就绪时显示设置卡片
-├── SmsApplication.kt          # Application，Hilt 入口
-├── data/                      # SmsRepository、Room（回收站）、实体、数据源
-├── di/                        # Hilt 模块
-├── feature/                   # 各页面（列表 / 详情 / 发送 / 回收站）
-├── receiver/                  # SmsReceiver、MmsReceiver、CopyCodeReceiver、BootReceiver
-├── service/                   # HeadlessSmsSendService、KeepAliveService
-├── util/                      # 验证码提取、链接、签名、联系人解析等
-└── notification/、badge/      # 通知 / 桌面角标
-```
-
----
-
 ## 设为默认短信应用（重要）
 
 本应用要真正收发短信，必须在系统中**设为默认短信应用**（设置 → 应用 → 默认应用 → 短信应用）。否则只能读取已存在的短信、无法接收与发送新短信。
-
-> ⚠️ 设为默认短信应用后，系统的短信收发将由本应用接管；`MmsReceiver` 与 `HeadlessSmsSendService` 目前仅为占位，不处理 MMS / 通知栏快捷回复。
 
 ## 权限说明
 
